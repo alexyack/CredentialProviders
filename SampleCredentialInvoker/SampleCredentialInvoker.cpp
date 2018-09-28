@@ -67,7 +67,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	BOOL save = false, bRet;
+	BOOL save = FALSE, bRet = FALSE;
 	DWORD authPackage = 0, dwRet;
 	LPVOID authBuffer, inBuffer;
 	ULONG authBufferSize, inBufferSize;
@@ -75,6 +75,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	CAtlStringW strMessage;
 	LPWSTR szUsername, szDomain, szPassword;
 	DWORD cbUsername, cbDomain, cbPassword, dwFlags;
+
+	HRESULT hr;
+	CComPtr<ICredentialProvider> spProvider;
+	CComPtr<ICredentialProviderCredential> spCredential;
+	CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
+	CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR* pcpfd;
+	CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
+	CREDENTIAL_PROVIDER_STATUS_ICON cpsi;
+	DWORD dwCount, dwDefault, dwIndex;
+	LPWSTR pszStatrus;
+	KERB_CERT_LOGON kcl;
+	HANDLE hlsa;
+	LSA_STRING lsastr;
+	DWORD cbkcl;
+
 
 	credUiInfo.cbSize = sizeof(credUiInfo);
 	credUiInfo.hbmBanner = NULL;
@@ -90,97 +105,93 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	inBuffer = NULL;
 	inBufferSize = 0;
 
-/*
-	HRESULT hr;
-	CComPtr<ICredentialProvider> spProvider;
-	CComPtr<ICredentialProviderCredential> spCredential;
-	CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION cpcs;
-	CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR* pcpfd;
-	CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE cpgsr;
-	CREDENTIAL_PROVIDER_STATUS_ICON cpsi;
-	DWORD dwCount, dwDefault, dwIndex;
-	LPWSTR pszStatrus;
-	KERB_CERT_LOGON kcl;
-	HANDLE hlsa;
-	LSA_STRING lsastr;
-	DWORD cbkcl;
 
-	//
-	
-	authPackage = 0xFFFFEB34;
-
-	cbkcl = sizeof(KERB_CERT_LOGON);
-	memset(&kcl, 0, cbkcl);
-
-	kcl.kcl.MessageType = KerbCertificateLogon;
-	kcl.kcl.CspData = PUCHAR(offsetof(KERB_CERT_LOGON,kcci));
-	kcl.kcl.CspDataLength = sizeof(KERB_CARD_CSP_INFO);
-
-	kcl.kcci.ksci.dwCspInfoLen = sizeof(KERB_CARD_CSP_INFO);
-	kcl.kcci.ksci.MessageType = 1;
-	kcl.kcci.ksci.flags = 0x00010001;
-	kcl.kcci.ksci.nCardNameOffset      = offsetof(KERB_CARD_CSP_NAMES, szCardName)      / sizeof(WCHAR);
-	kcl.kcci.ksci.nReaderNameOffset    = offsetof(KERB_CARD_CSP_NAMES, szReaderName)    / sizeof(WCHAR);
-	kcl.kcci.ksci.nContainerNameOffset = offsetof(KERB_CARD_CSP_NAMES, szContainerName) / sizeof(WCHAR);
-	kcl.kcci.ksci.nCSPNameOffset       = offsetof(KERB_CARD_CSP_NAMES, szCSPName)       / sizeof(WCHAR);
-
-	StringCchCopyW(kcl.kcci.kccn.szReaderName, 64, TEXT("Athena ASEDrive IIIe USB 0"));
-
-	inBuffer = &kcl;
-	inBufferSize = sizeof(KERB_CERT_LOGON);
-	dwFlags = CREDUIWIN_IN_CRED_ONLY;
-
-	//
-	hr = CoInitialize(NULL);
-
-	if(SUCCEEDED(hr))
-		hr = spProvider.CoCreateInstance(CLSID_SmartcardPinProvider);
-	
-	if(SUCCEEDED(hr))
-		hr = spProvider->SetUsageScenario(CPUS_CREDUI, CREDUIWIN_IN_CRED_ONLY);
-
-	cpcs.rgbSerialization = LPBYTE(inBuffer);
-	cpcs.cbSerialization = inBufferSize;
-	cpcs.clsidCredentialProvider = CLSID_NULL;
-	cpcs.ulAuthenticationPackage = 0xFFFFEB34;
-
-	if(SUCCEEDED(hr))
-		hr = spProvider->SetSerialization(&cpcs);
-
-	if(SUCCEEDED(hr))
-		hr = spProvider->GetCredentialCount(&dwCount, &dwDefault, &save);
-
-	if(SUCCEEDED(hr))
-		hr = spProvider->GetCredentialAt(0, &spCredential);
-
-	if(SUCCEEDED(hr))
-		hr = spProvider->GetFieldDescriptorCount(&dwCount);
-
-	for(dwIndex = 0; dwIndex < dwCount; dwIndex++)
+	if(bRet)
 	{
-		hr = spProvider->GetFieldDescriptorAt(dwIndex, &pcpfd);
+		dwCount = 0;
+		authPackage = 0;
+
+		cbkcl = sizeof(KERB_CERT_LOGON);
+		memset(&kcl, 0, cbkcl);
+
+		kcl.kcl.MessageType = KerbCertificateLogon;
+		kcl.kcl.CspData = PUCHAR(offsetof(KERB_CERT_LOGON,kcci));
+		kcl.kcl.CspDataLength = sizeof(KERB_CARD_CSP_INFO);
+
+		kcl.kcci.ksci.dwCspInfoLen = sizeof(KERB_CARD_CSP_INFO);
+		kcl.kcci.ksci.MessageType = 1;
+		kcl.kcci.ksci.flags = 0x00010001;
+		kcl.kcci.ksci.nCardNameOffset      = offsetof(KERB_CARD_CSP_NAMES, szCardName)      / sizeof(WCHAR);
+		kcl.kcci.ksci.nReaderNameOffset    = offsetof(KERB_CARD_CSP_NAMES, szReaderName)    / sizeof(WCHAR);
+		kcl.kcci.ksci.nContainerNameOffset = offsetof(KERB_CARD_CSP_NAMES, szContainerName) / sizeof(WCHAR);
+		kcl.kcci.ksci.nCSPNameOffset       = offsetof(KERB_CARD_CSP_NAMES, szCSPName)       / sizeof(WCHAR);
+
+		StringCchCopyW(kcl.kcci.kccn.szReaderName, 64, TEXT("Athena ASEDrive IIIe USB 0"));
+
+		inBuffer = &kcl;
+		inBufferSize = sizeof(KERB_CERT_LOGON);
+		dwFlags = CREDUIWIN_IN_CRED_ONLY;
+
+		//
+		hr = CoInitialize(NULL);
+
+		if(SUCCEEDED(hr))
+			hr = spProvider.CoCreateInstance(CLSID_SmartcardCredentialProvider);
+	
+		if(SUCCEEDED(hr))
+			hr = spProvider->SetUsageScenario(CPUS_CREDUI, CREDUIWIN_IN_CRED_ONLY);
+
+// 		cpcs.rgbSerialization = LPBYTE(inBuffer);
+// 		cpcs.cbSerialization = inBufferSize;
+// 		cpcs.clsidCredentialProvider = CLSID_NULL;	
+// 		cpcs.ulAuthenticationPackage = 0xFFFFEB34;
+		cpcs.rgbSerialization = NULL;
+		cpcs.cbSerialization = 0;
+		cpcs.clsidCredentialProvider = CLSID_NULL;	
+		cpcs.ulAuthenticationPackage = 0;
+
+		if(SUCCEEDED(hr))
+			hr = spProvider->SetSerialization(&cpcs);
+
+		if(SUCCEEDED(hr))
+			hr = spProvider->GetFieldDescriptorCount(&dwCount);
+
+		for(dwIndex = 0; dwIndex < dwCount; dwIndex++)
+		{
+			hr = spProvider->GetFieldDescriptorAt(dwIndex, &pcpfd);
+		}
+
+		if(SUCCEEDED(hr))
+			hr = spProvider->GetCredentialCount(&dwCount, &dwDefault, &save);
+
+		if(dwCount > 0)
+		{
+			if(SUCCEEDED(hr))
+				hr = spProvider->GetCredentialAt(0, &spCredential);
+
+			if(SUCCEEDED(hr))
+				hr = spCredential->SetSelected(&save);
+
+			if(SUCCEEDED(hr))
+				hr = spCredential->SetStringValue(1, L"12345678");
+
+			memset(&cpcs, 0, sizeof(CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION));
+
+			if(SUCCEEDED(hr))
+				hr = spCredential->GetSerialization(&cpgsr, &cpcs, &pszStatrus, &cpsi);
+
+			spCredential.Release();
+		}
+
+		spProvider.Release();
+
+		dwRet = hr;
 	}
-
-	if(SUCCEEDED(hr))
-		hr = spCredential->SetSelected(&save);
-
-	if(SUCCEEDED(hr))
-		hr = spCredential->SetStringValue(1, L"12345678");
-
-	memset(&cpcs, 0, sizeof(CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION));
-
-	if(SUCCEEDED(hr))
-		hr = spCredential->GetSerialization(&cpgsr, &cpcs, &pszStatrus, &cpsi);
-
-	spCredential.Release();
-	spProvider.Release();
-
-	dwRet = hr;
-*/
-
-	dwRet = CredUIPromptForWindowsCredentialsW(&(credUiInfo), 0, &(authPackage),
-		inBuffer, inBufferSize, &authBuffer, &authBufferSize, &(save), dwFlags);
-
+	else
+	{
+		dwRet = CredUIPromptForWindowsCredentialsW(&(credUiInfo), 0, &(authPackage),
+			inBuffer, inBufferSize, &authBuffer, &authBufferSize, &(save), dwFlags);
+	}
 
 	if(dwRet == ERROR_SUCCESS)
 	{
@@ -221,7 +232,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 			if(bRet)
 			{
-				strMessage.Format(L"Username:\t'%s'\nDomain:\t\t'%s'\nPassword:\t\t'%s'", szUsername, szDomain, szPassword);
+				strMessage.Format(L"Username:\t'%s'\nDomain:\t\t'%s'\nPassword:\t'%s'", szUsername, szDomain, szPassword);
 				MessageBox(NULL, strMessage, L"Учетные данные", MB_OK | MB_ICONINFORMATION);
 			}
 			else

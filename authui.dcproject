@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://schemata.jklnet.org/Reko/v4">
+  <arch>x86-protected-32</arch>
+  <platform>win32</platform>
+  <input>
+    <filename>authui.dll</filename>
+    <disassembly>authui.asm</disassembly>
+    <intermediate-code>authui.dis</intermediate-code>
+    <output>authui.c</output>
+    <types-file>authui.h</types-file>
+    <global-vars>authui.globals.c</global-vars>
+    <user>
+      <processor />
+      <registerValues />
+    </user>
+  </input>
+</project>
