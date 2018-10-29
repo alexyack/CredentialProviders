@@ -4,24 +4,31 @@ Binary GUID : FE894E8A9DC05E4788CBF8F11E047C50
 
 Intrface IID: 4A54A3B6-A8D3-46A8-9080-811BA8CCB07D
 Binary GUID : B6A3544AD3A8A8469080811BA8CCB07D
-Возможно это: ICredentialProviderCredential4::GetTextFieldLength
+Возможно это: ???
 
 Intrface IID: AC9888CD-1278-4D00-A05E-7B052C014553
 Binary GUID : CD8898AC7812004DA05E7B052C014553
 Возможно это: ICredentialProviderCredentialWithHiddenCredUISubmitButton::ShouldHideCredUISubmitButton
 
 Intrface IID: 5881C1A8-5B25-41AB-9311-750F996C8615
-Binary GUID : 
+Binary GUID : A8C18158255BAB419311750F996C8615
 Возможно это: ICredentialProviderCredentialWithDisabledCredUISubmitButton::ShouldDisableCredUISubmitButton
 
 Intrface IID: F6247CF9-061D-46E7-AAA7-0FDE071A5C1A
-Binary GUID : 
+Binary GUID : F97C24F61D06E746AAA70FDE071A5C1A
 Возможно это: ICredentialProviderCredentialTileDataInfo::GetTileVisibility
 
 Intrface IID: A09BCC29-D779-4513-BB59-B4DB5D82D2B6
 Binary GUID : 
 Возможно это: ICredentialProviderWithDisplayState::SetDisplayState
               
+Intrface IID: 1ECF61D8-745E-4484-BCC7-182CEA64C787
+Binary GUID : D861CF1E5E748444BCC7182CEA64C787
+Возможно это: ICredentialProviderCredential4::GetTextFieldLength
+              ICredentialProviderCredential4::GetAccessibilityTextForField     
+              ICredentialProviderCredential4::GetIsAccessibilityViewRawForField
+              ICredentialProviderCredential4::SetAccessibilityText
+
 
 GUID_43319a0d_c598_48a5_98e5_1dec5cf41091
 GUID_a5da53f9_d475_4080_a120_910c4a739880
