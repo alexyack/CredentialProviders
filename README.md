@@ -4,4 +4,4 @@ THis repository is Copy of Microsoft Credential Provider Demos (v1 and v2) with 
 
 ### Credential Invoker
 
-THe main task is to faster call of Windows security dialog.
+The main task is to faster call of Windows security dialog.
