@@ -1,0 +1,95 @@
+body
+{
+    font-family: "Segoe UI", Verdana, Arial;
+    font-size: 0.9em;
+    line-height: 120%;
+}
+
+h1
+{
+    display: inline;
+    font-family: Tahoma Verdana Sans-serif;  
+}
+
+.homeLink
+{
+    float: right;
+    vertical-align: middle;
+    visibility: hidden;
+}
+
+.divider
+{
+    font-weight: bold;
+}
+
+.proto
+{
+    background-color: #eeeeee;
+}
+
+.proto p
+{
+    padding: 5px;
+}
+
+dscription
+{
+}
+
+td
+{
+    padding: 0 3px 0 3px;
+}
+
+dt
+{
+    font-style : italic;
+    font-size: 90%;
+}
+
+.code
+{
+    background-color: #dddddd;
+    padding: 5px;
+    font-family: "Courier New" Courier Serif;
+}
+
+.linkList
+{
+    list-style-type: circle;
+}
+
+a
+{
+    color: #1364c4;
+}
+
+.indexBanner h1
+{
+    font-size: 3.5em;
+    font-family: "Courier New" Arial Tahoma;
+    text-align: center;
+    line-height: 200%;
+    display: block;
+}
+
+.indexSubtitle p
+{
+    font-size: 2em;
+    font-family: "Segoe UI" Verdana Tahoma;
+    text-align: center;
+    font-weight: 500;
+}
+
+.indexPara
+{    
+    text-align: centre;
+    margin-left: 25%;
+    margin-right: 25%;
+}
+
+.indexPara p
+{
+    text-align: center;
+}

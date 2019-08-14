@@ -1,0 +1,257 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd" >
+<html lang="en-GB" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Profile Property Stores</title>
+<link rel="stylesheet" type="text/css" href="../msdnstyle.css" />
+<script type="text/javascript" src="../ajax.js"></script>
+</head>
+<body onload='init()' onunload='uninit()'>
+<div class="header"><h1>Profile Property Stores</h1><a class="homeLink" href="../index.php">Go to Home Page</a></div>
+<hr />
+
+<p class="dscription">Starting with Vista, Windows employs many components who expose their data via IPropertyStores. shacct.dll contains the implementation of the property stores dealing with users and their profiles. These interfaces can only be retrived via CoCreateInstance, and not via any exported functions.</p>
+
+<p class="divider">CLSID's</p><p>
+<dl>
+<dt>CLSID_LocalUserAccounts - 4F6BCD94-C2A5-42CE-8dbc-31e794be4630 - {0x4F6BCD94, 0xC2A5, 0x42CE, {0x8d, 0xbc, 0x31, 0xe7, 0x94, 0xbe, 0x46, 0x30}};</dt>
+<dd>Tangible User Accounts</dd>
+<dt>CLSID_LocalGroups - 8F3080A6-af99-4F2e-a806-f3d5702a0444 - {0x8F3080A6, 0xaf99, 0x4F2e, {0xa8, 0x06, 0xf3, 0xd5, 0x70, 0x2a, 0x04, 0x44}};</dt>
+<dd>Computer resident groups (Administrators, Users, Guests, etc)</dd>
+<dt>CLSID_LoggedOnAccounts - 987d8dfa-3e2c-4929-9c51-61ac8e00cbc3 - {0x987d8dfa, 0x3e2c, 0x4929, {0x9c, 0x51, 0x61, 0xac, 0x8e, 0x00, 0xcb, 0xc3}};</dt>
+<dd>Accounts logged on to the computer now</dd>
+<dt>CLSID_ProfileAccounts - 99CDC6E0-DA00-4DFA-8eb8-831d774f8891 - {0x99CDC6E0, 0xDA00, 0x4DFA, {0x8e, 0xb8, 0x83, 0x1d, 0x77, 0x4f, 0x88, 0x91}};</dt>
+<dd>Accounts with a profile directory (including LocalSystem, LocalService, NetworkService)</dd>
+<dt>CLSID_UserAccounts - C3C39131-B182-4801-b437-6d1e65b72f57 - {0xC3C39131, 0xB182, 0x4801, {0xb4, 0x37, 0x6d, 0x1e, 0x65, 0xb7, 0x2f, 0x57}};
+<dd>Aggregates the info in CLSID_LocalUserAccounts and CLSID_ProfileAccounts</dd>
+</dl>
+</p>
+<p class="divider">Interfaces</p><p>
+Each of the clsid's above implement only the IComputerAccounts interface. The ancillary interfaces are documented <a href="#otherints">further down the page</a>
+</p><pre class="code">
+MIDL_INTERFACE("3C708557-C99D-4FA3-9231-56518418B4E4")
+IComputerAccounts : public IUnknown
+{
+    // 0xc - retrives an interface to enumerate the members
+    // of the user/group collection specified by the CLSID above
+    STDMETHOD(GetEnumerator)(IEnumAccounts** pEnumerator) = 0;
+
+    // 0x10 - number of property stores/entries in this collection
+    STDMETHOD(GetCount)(ULONG* pCount) = 0;
+
+    // 0x14 - Get the user/profile property store at index
+    STDMETHOD(GetAt)(ULONG index, IPropertyStore** ppPropStore) = 0;
+
+    // 0x18 - resets the object state to default
+    STDMETHOD(Reset)(void) = 0;
+
+    // 0x1c - Create a new permanent user and return its propstore
+    // E_NOTIMPL for logged on users
+    STDMETHOD(Create)(PCWSTR pName, IPropertyStore** ppPropStore) = 0;
+
+    // 0x20 - Deletes a permanent user using the RID in the prop store
+    STDMETHOD(Delete)(IPropertyStore* pPropStore) = 0;
+
+    // 0x24 - Retrieve a property store using a user or groups display name
+    // E_NOTIMPL for CLSID_ProfileAccounts, must use FindByRid
+    STDMETHOD(FindByName)(PCWSTR pUserName, IPropertyStore** ppPropStore) = 0;
+
+    // 0x28 - Retrieve a prop store using the user or account rid
+    // The rid is the last subauthority in a SID as in
+    // rid = *GetSidSubAuthority((*GetSidSubAuthorityCount(pAccountSid)) - 1)
+    STDMETHOD(FindByRid)(ULONG rid, IPropertyStore** ppPropStore) = 0;
+
+    // 0x2c - interface is IComputerAccountNotify
+    // The passed interface is added to the IGlobalInterfaceTable
+    // Requires Administrator or you'll get access denied (0xD0000022)
+    STDMETHOD(Advise)(IComputerAccountNotify* pCompAcctNotify, DWORD* pToken) = 0;
+
+    // 0x30 - stop receiving account events
+    STDMETHOD(Unadvise)(DWORD token) = 0;
+};
+</pre>
+<p class="divider">Property Keys</p><p>
+All property keys except one contain the same GUID as the key, using only the pid of the PROPERTYKEY structure to differentiate. Not all property stores returned by the various CLSID implementations can query all the keys, some of these are noted in the table.</p>
+<blockquote><p>
+The prefix guid for all prop keys is
+GUID_AccPropPrefix = {0x705D8364, 0x7547, 0x468c, {0x8c, 0x88, 0x84, 0x86, 0x0b, 0xcb, 0xed, 0x4c}}
+
+<table rules="cols,rows" frame="box" width="100%">
+<tr><th colspan="2">General PROPERTYKEYs</th></tr>
+<tr><th>Name & Definition</th><th>Variant Type/Notes</th></tr>
+<tr><td>PKEY_SAM_Name = {GUID_AccPropPrefix, 2}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_PasswordLastSet = {GUID_AccPropPrefix, 5}</td><td>FILETIME</td></tr>
+<tr><td>PKEY_SAM_DateAccountExpires = {GUID_AccPropPrefix, 6}</td><td>DATE</td></tr>
+<tr><td>PKEY_SAM_PasswordCanChange = {GUID_AccPropPrefix, 7}</td><td>FILETIME</td></tr>
+<tr><td>PKEY_SAM_PasswordMustChange = {GUID_AccPropPrefix, 8}</td><td>DATE</td></tr>
+<tr><td>PKEY_SAM_FullName = {GUID_AccPropPrefix, 9}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_HomeDirectory = {GUID_AccPropPrefix, 10}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_HomeDirectoryDrive = {GUID_AccPropPrefix, 11}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_ScriptPath = {GUID_AccPropPrefix, 12}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_ProfilePath = {GUID_AccPropPrefix, 13}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_AdminComment = {GUID_AccPropPrefix, 14}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_Workstations = {GUID_AccPropPrefix, 15}</td><td>Empty for no restriction or VT_LPWSTR | VT_VECTOR otherwise<br />(note the last entry in the array isn't null terminated on Win7, fixed in 8)</td></tr>
+<tr><td>PKEY_SAM_UserComment = {GUID_AccPropPrefix, 16}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_Password = {GUID_AccPropPrefix, 17}</td><td>LPWSTR - always an empty string</td></tr>
+<tr><td>PKEY_SAM_SecurityID = {GUID_AccPropPrefix, 18}</td><td>BLOB (PSID)</td></tr>
+<tr><td>PKEY_SAM_UserAccountControl = {GUID_AccPropPrefix, 19}</td><td>UI4 - LocalUserAccounts only. See <a href="#uacflags">here</a> for flag definitions</td></tr>
+<tr><td>PKEY_SAM_LogonHours = {GUID_AccPropPrefix, 20}</td><td>VT_VECTOR | VT_UI1 - See <a href="#logonhours">here</a> for a description of the format</td></tr>
+<tr><td>PKEY_SAM_CountryCode = {GUID_AccPropPrefix, 21}</td><td>VT_UI2</td></tr>
+<tr><td>PKEY_SAM_CodePage = {GUID_AccPropPrefix, 22}</td><td>VT_UI2</td></tr>
+<tr><td>PKEY_SAM_PasswordExpired = {GUID_AccPropPrefix, 23}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_UserPicture = {GUID_AccPropPrefix, 24}</td><td>BLOB - See the bottom of <a href="..\shell32.dll\SHSetUserPicturePath.php">SHSetUserPicturePath</a> for the data format</td></tr>
+<tr><td>PKEY_SAM_PasswordHint = {GUID_AccPropPrefix, 25}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_Domain = {GUID_AccPropPrefix, 25}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_SAM_Groups = {GUID_AccPropPrefix, 31}</td><td>LPWSTR - Always returns the string "Need to implement groups"</td></tr>
+<tr><td>PKEY_SAM_Type = {GUID_AccPropPrefix, 32}</td><td>UI4</td></tr>
+<tr><td>PKEY_SAM_InteractiveLogin = {GUID_AccPropPrefix, 36}</td><td>BOOL - This and the rest of the *Login values<br /> test whether the user has the associated SE_*_LOGON_NAME right</td></tr>
+<tr><td>PKEY_SAM_NetworkLogin = {GUID_AccPropPrefix, 37}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_BatchLogin = {GUID_AccPropPrefix, 38}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_ServiceLogin = {GUID_AccPropPrefix, 39}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_RemoteInteractiveLogin = {GUID_AccPropPrefix, 40}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DenyInteractiveLogin = {GUID_AccPropPrefix, 41}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DenyNetworkLogin = {GUID_AccPropPrefix, 42}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DenyBatchLogin = {GUID_AccPropPrefix, 43}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DenyServiceLogin = {GUID_AccPropPrefix, 44}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DenyRemoteInteractiveLogin = {GUID_AccPropPrefix, 45}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_DontShowInLogonUI = {GUID_AccPropPrefix, 46}</td><td>BOOL</td></tr>
+<tr><td>PKEY_SAM_ShellAdminObjectProps = {GUID_AccPropPrefix, 47}</td><td>?</td></tr>
+<tr><td>PKEY_SAM_PasswordIsEmpty = {GUID_AccPropPrefix, 50}</td><td>BOOL - only returns correct results when caller is an admin</td></tr>
+<tr><td>PKEY_SAM_GroupMembers = {GUID_AccPropPrefix, 102}</td><td>for groups only - VT_VECTOR | VT_VARIANT<br />(variants are VT_UNKNOWN, IPropertyStore* for each user in the group)</td></tr>
+<tr><td>PKEY_SAM_ResidualID = {GUID_AccPropPrefix, 103}</td><td>UI4 (RID part of SID)</td></tr>
+<tr><td>PKEY_SAM_AccountIsDisabledForLogonUI = <br />{{0x8BF6B9F6, 0xb4f5, 0x482f, {0xa2, 0xc2, 0x44, 0xbd, 0xad, 0x2f, 0xcf, 0xa9}}, 51}</td><td>The nonstandard guid entry<br />GetValue returns E_INVALIDARG if not set, instead of returning a variant</td></tr>
+</tbody>
+</table>
+<br />
+<br />
+<table rules="cols,rows" frame="box" width="100%">
+<tr><th colspan="2">LoggedOnAccounts Exclusive PROPERTYKEYs</th></tr>
+<tr><th>Name & Definition</th><th>Variant Type/Notes</th></tr>
+<tr><td>PKEY_LOGON_LUID = {GUID_AccPropPrefix, 200}</td><td>UI8</td></tr>
+<tr><td>PKEY_LOGON_AuthenticationPackage = {GUID_AccPropPrefix, 201}</td><td>LPWSTR - NTLM for example</td></tr>
+<tr><td>PKEY_LOGON_TSSession = {GUID_AccPropPrefix, 202}</td><td>UI4 - session id</td></tr>
+<tr><td>PKEY_LOGON_LogonTime = {GUID_AccPropPrefix, 203}</td><td>FILETIME</td></tr>
+<tr><td>PKEY_LOGON_LogonServer = {GUID_AccPropPrefix, 204}</td><td>LPWSTR - computer name</td></tr>
+<tr><td>PKEY_LOGON_DnsDomainName = {GUID_AccPropPrefix, 205}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_LOGON_UPN = {GUID_AccPropPrefix, 206}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_LOGON_ClientName = {GUID_AccPropPrefix, 207}</td><td>LPWSTR - value returned by WTSQuerySession(WTSClientName)</td></tr>
+<tr><td>PKEY_LOGON_WinStationName = {GUID_AccPropPrefix, 208}</td><td>LPWSTR</td></tr>
+<tr><td>PKEY_LOGON_Status = {GUID_AccPropPrefix, 209}</td><td>UI4 - a value from the WTS_CONNECTSTATE_CLASS enum</td></tr>
+</table>
+<br />
+<br />
+<table rules="cols,rows" frame="box" width="100%">
+<tr><th colspan="2">ProfileAccounts Exclusive PROPERTYKEYs</th></tr>
+<tr><th>Name & Definition</th><th>Variant Type/Notes</th></tr>
+<tr><td>PKEY_PROFILE_Path = {GUID_AccPropPrefix, 500}</td><td>LPWSTR - User profile directory</td></tr>
+<tr><td>PKEY_PROFILE_GUID = {GUID_AccPropPrefix, 501}</td><td>GUID - profile guid</td></tr>
+</table>
+</p></blockquote>
+<p>The property stores that contain these keys also support the documented IPersistSerializedPropStorage interface too.</p>
+</p></blockquote>
+<p class="divider"><a name="otherints">Ancillary Interfaces</a></p>
+<p>IEnumAccounts is used to enumerate the contained groups/accounts using the familiar
+enumerator interface method</p>
+<pre class="code">
+MIDL_INTERFACE("50C852B0-C95F-4FEE-be00-87DC18B2661B")
+IEnumAccounts : public IUnknown
+{
+public:
+    // pFetched is required
+    STDMETHOD(Next)(ULONG celt, IPropertyStore** ppStore, ULONG* pFetched) = 0;
+
+    STDMETHOD(Skip)(ULONG celt) = 0;
+
+    STDMETHOD(Reset)(void) = 0;
+
+    STDMETHOD(Clone)(IEnumAccounts** ppEnum) = 0;
+};
+</pre>
+<p>The IComputerAccountNotify allows clients to be notified when a user or group is changed. No indications are given on what has changed as this information is unavailable from the internal notification system (SamRegisterObjectChangeNotification) which just sets an event.</p>
+<pre class="code">
+MIDL_INTERFACE("F0009734-E8DE-48E5-B603-BFA5966A8F7C")
+IComputerAccountNotify : public IUnknown
+{
+    // called when there is a change (user info changed, member added to a group, etc)
+    STDMETHOD(OnEvent)(void) = 0;
+
+    // called in IComputerAccounts::Advise()
+    // queries for the delay in milliseconds
+    // between OnEvent calls, can be set to 0 for no delay
+    STDMETHOD(GetMinimumTimeout)(DWORD* pdwTimeout) = 0;
+};
+</pre>
+<p class="divider">Other Functionality</p>
+<p>Alongside the profile property stores, shacct.dll also houses the default implementation of the IProfileNotify interface. This interface performs various tasks when users are created and deleted and when their profiles are loaded and unloaded.</p>
+
+<pre class="code">
+MIDL_INTERFACE("E10F6C3A-F1ae-4adc-aa9d-2fe65525666e")
+IProfileNotify : public IUnknown
+{
+    // Creates the &lt;username&gt;.dat file in the "%ProgramData%\Microsoft\User Account Pictures" directory
+    STDMETHOD(OnCreate)(PCWSTR pStringSid, PCWSTR unused1, ULONG unused2) = 0;
+
+    // Deletes the &lt;username&gt;.dat file in the "%ProgramData%\Microsoft\User Account Pictures" directory
+    // and removes the folder aces created by OnLoad()
+    STDMETHOD(OnDelete)(PCWSTR pStringSid, PCWSTR unused1, ULONG unused2) = 0;
+
+    // E_NOTIMPL - aliased to OnUnload in the disassembly because they both return the same
+    STDMETHOD(OnXXX)(PCWSTR, PCWSTR, ULONG, int) = 0;
+
+    // E_NOTIMPL
+    STDMETHOD(OnUpgrade)(PCWSTR, PCWSTR, ULONG, int) = 0;
+
+    // adds an access allowed ace to the FOLDERID_PublicDesktop
+    // folder and FOLDERID_CommonStartMenu
+    // If pStringSid is an Administrator sid
+    // an additional FILE_DELETE_CHILD | DELETE ace is added to both folders
+    STDMETHOD(OnLoad)(PCWSTR pStringSid, PCWSTR unused1, ULONG unused2, PSID pSid) = 0;
+
+    // E_NOTIMPL
+    STDMETHOD(OnUnload)(PCWSTR, PCWSTR, ULONG, int) = 0;
+};
+</pre>
+<dl>
+<dt>CLSID_ProfileNotificationHandler - 56EA1054-195-467f-be3b-a287c4b6ea - {0x56EA1054, 0x1959, 0x467f, {0xbe, 0x3b, 0xa2, 0x87, 0xc4, 0xb6, 0xea}};</dt>
+<dd>Required to create the interface</dd>
+</dl>
+
+<hr />
+<p class="divider"><a name="uacflags">User Account Control flags</a></p>
+<blockquote><pre class="code">
+// frmo NTSam.h in the WDK
+#define USER_ACCOUNT_DISABLED                       (0x00000001)
+#define USER_HOME_DIRECTORY_REQUIRED                (0x00000002)
+#define USER_PASSWORD_NOT_REQUIRED                  (0x00000004)
+#define USER_TEMP_DUPLICATE_ACCOUNT                 (0x00000008)
+#define USER_NORMAL_ACCOUNT                         (0x00000010)
+#define USER_MNS_LOGON_ACCOUNT                      (0x00000020)
+#define USER_INTERDOMAIN_TRUST_ACCOUNT              (0x00000040)
+#define USER_WORKSTATION_TRUST_ACCOUNT              (0x00000080)
+#define USER_SERVER_TRUST_ACCOUNT                   (0x00000100)
+#define USER_DONT_EXPIRE_PASSWORD                   (0x00000200)
+#define USER_ACCOUNT_AUTO_LOCKED                    (0x00000400)
+#define USER_ENCRYPTED_TEXT_PASSWORD_ALLOWED        (0x00000800)
+#define USER_SMARTCARD_REQUIRED                     (0x00001000)
+#define USER_TRUSTED_FOR_DELEGATION                 (0x00002000)
+#define USER_NOT_DELEGATED                          (0x00004000)
+#define USER_USE_DES_KEY_ONLY                       (0x00008000)
+#define USER_DONT_REQUIRE_PREAUTH                   (0x00010000)
+#define USER_PASSWORD_EXPIRED                       (0x00020000)
+#define USER_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION (0x00040000)
+#define USER_NO_AUTH_DATA_REQUIRED                  (0x00080000)
+#define USER_PARTIAL_SECRETS_ACCOUNT                (0x00100000)
+#define USER_USE_AES_KEYS                           (0x00200000)
+</pre></blockquote>
+<p class="divider"><a name="logonhours">Logon Hours</a></p>
+<p>From ntsam.h</p>
+<blockquote><p>LogonHours is a bit map of valid logon times. Each bit represents a unique division in a week. The largest bit map supported is 1260 bytes (10080 bits), which represents minutes per week.<br />
+In this case the first bit (bit 0, byte 0) is Sunday, 00:00:00 - 00-00:59; bit 1, byte 0 is Sunday, 00:01:00 - 00:01:59, etc.
+</p></blockquote>
+<script type="text/javascript">
+var sc_project=6866758;
+var sc_security="82508fd2";
+var sc_invisible=1;
+</script>
+<script type="text/javascript" src="http://www.statcounter.com/counter/counter_xhtml.js"></script>
+<noscript><div class="statcounter"><img class="statcounter" src="http://c.statcounter.com/6375973/0/ea9bcc24/1/" alt="web analytics" /></div></noscript></body>
+</html>
