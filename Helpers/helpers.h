@@ -87,3 +87,9 @@ HRESULT DomainUsernameStringAlloc(
     const PWSTR pwszDomain,
     const PWSTR pwszUsername,
     __deref_out PWSTR* ppwszDomainUsername);
+
+
+LPCTSTR FormatLastError();
+LPCTSTR FormatLastError(DWORD dwErrorCode);
+LPCTSTR FormatLastError(DWORD dwErrorCode, BOOL bExpanded);
+

@@ -16,6 +16,8 @@
 
 #include <credentialprovider.h>
 
+#include "../Helpers/helpers.h"
+
 #pragma pack(push, KerbCSPInfo, 1)
 
 #pragma warning(push)
@@ -101,7 +103,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	authBuffer = NULL;
 	authBufferSize = 0;
-
+	
 	inBuffer = NULL;
 	inBufferSize = 0;
 
@@ -237,7 +239,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			}
 			else
 			{
-				strMessage.Format(L"При вводе учётных данных произошла ошибка.\nКод ошибки: %10d [%08X].", dwRet, dwRet);
+				strMessage.Format(L"При вводе учётных данных произошла ошибка.\nОшибка: %s.", FormatLastError(dwRet));
 				MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
 			}
 
@@ -249,6 +251,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			free(szDomain);
 			free(szPassword);
 		}
+		else
+		{
+			strMessage.Format(L"При вводе учётных данных произошла ошибка.\nОшибка: %s.", FormatLastError(dwRet));
+			MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
+		}
 
 		SecureZeroMemory(authBuffer, authBufferSize);
 		CoTaskMemFree(authBuffer);
@@ -259,7 +266,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 	else
 	{
-		strMessage.Format(L"При вводе учётных данных произошла ошибка.\nКод ошибки: %10d [%08X].", dwRet, dwRet);
+		strMessage.Format(L"При вводе учётных данных произошла ошибка.\nОшибка: %s.", FormatLastError(dwRet));
 		MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
 	}
 
