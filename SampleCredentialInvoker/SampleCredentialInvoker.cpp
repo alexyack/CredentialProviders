@@ -16,7 +16,7 @@
 
 #include <credentialprovider.h>
 
-#include "../Helpers/helpers.h"
+extern LPCTSTR FormatLastError(DWORD dwErrorCode);
 
 #pragma pack(push, KerbCSPInfo, 1)
 
@@ -60,6 +60,41 @@ typedef struct _KERB_CERT_LOGON {
 #pragma warning(pop)
 
 #pragma pack(pop, KerbCSPInfo)
+
+#define FLE_MESSAGE_SIZE	512
+#define FLE_STRING_SIZE		1024
+
+LPCTSTR FormatLastError(DWORD dwErrorCode)
+{
+	static TCHAR szMessage[FLE_MESSAGE_SIZE], szFormat[FLE_STRING_SIZE];
+	DWORD nRet;
+
+	DWORD dwLastError = GetLastError();
+
+	szMessage[0] = 0;
+	szFormat[0] = 0;
+
+	nRet = ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwErrorCode, 0, szMessage, FLE_MESSAGE_SIZE, NULL);
+
+	while ((nRet > 0) && iswspace(szMessage[nRet - 1]))
+	{
+		szMessage[nRet - 1] = TEXT('\0');
+		nRet--;
+	}
+
+	if (nRet > 0)
+	{
+		StringCchPrintf(szFormat, FLE_STRING_SIZE, TEXT("error code is 0x%08X, error message is '%s'"), dwErrorCode, szMessage);
+	}
+	else
+	{
+		StringCchPrintf(szFormat, FLE_STRING_SIZE, TEXT("error code is 0x%08X, without error message"), dwErrorCode);
+	}
+
+	SetLastError(dwLastError);
+
+	return szFormat;
+}
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
 					   HINSTANCE hPrevInstance,
