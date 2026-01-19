@@ -1,3 +1,5 @@
+﻿Часть интерфейсов восстановлена в файле credentialprovider_11.idl
+
 Intrface IID: 8A4E89FE-C09D-475E-88CB-F8F11E047C50
 Binary GUID : FE894E8A9DC05E4788CBF8F11E047C50
 Возможно это: IAutoLogonProvider::SetAutoLogonManager
