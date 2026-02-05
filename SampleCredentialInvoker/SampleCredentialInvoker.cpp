@@ -17,6 +17,7 @@
 #include <credentialprovider.h>
 
 extern LPCTSTR FormatLastError(DWORD dwErrorCode);
+void DispalyMessageBoxWithDump(DWORD dwRet, LPVOID authBuffer, ULONG authBufferSize);
 
 #pragma pack(push, KerbCSPInfo, 1)
 
@@ -232,67 +233,49 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	if(dwRet == ERROR_SUCCESS)
 	{
-		szUsername = NULL;
-		szDomain = NULL;
-		szPassword = NULL;
+		cbUsername = 256;
+		cbDomain   = 256;
+		cbPassword = 4096;
 
-		cbUsername = 0;
-		cbDomain = 0;
-		cbPassword = 0;
+		szUsername = LPWSTR(malloc(cbUsername * sizeof(WCHAR)));
+		szDomain = LPWSTR(malloc(cbDomain * sizeof(WCHAR)));
+		szPassword = LPWSTR(malloc(cbPassword * sizeof(WCHAR)));
 
-		bRet = CredUnPackAuthenticationBufferW(CRED_PACK_PROTECTED_CREDENTIALS, authBuffer, authBufferSize, 
+		memset(szUsername, 0, cbUsername * sizeof(WCHAR));
+		memset(szDomain, 0, cbDomain * sizeof(WCHAR));
+		memset(szPassword, 0, cbPassword * sizeof(WCHAR));
+
+		bRet = CredUnPackAuthenticationBufferW(CRED_PACK_PROTECTED_CREDENTIALS, authBuffer, authBufferSize,
 			szUsername, &cbUsername, szDomain, &cbDomain, szPassword, &cbPassword);
 		dwRet = GetLastError();
 
-		if(bRet	|| (dwRet == ERROR_INSUFFICIENT_BUFFER))
+		if (bRet == FALSE && dwRet == ERROR_NOT_CAPABLE)
 		{
-			if(cbUsername < 80)
-				cbUsername = 80;
-
-			if(cbDomain < 80)
-				cbDomain = 80;
-
-			if(cbPassword < 80)
-				cbPassword = 80;
-
-			szUsername = LPWSTR(malloc(cbUsername * sizeof(WCHAR)));
-			szDomain = LPWSTR(malloc(cbDomain * sizeof(WCHAR)));
-			szPassword = LPWSTR(malloc(cbPassword * sizeof(WCHAR)));
-
-			memset(szUsername, 0, cbUsername * sizeof(WCHAR));
-			memset(szDomain, 0, cbDomain * sizeof(WCHAR));
-			memset(szPassword, 0, cbPassword * sizeof(WCHAR));
-
-			bRet = CredUnPackAuthenticationBufferW(CRED_PACK_PROTECTED_CREDENTIALS, authBuffer, authBufferSize, 
+			bRet = CredUnPackAuthenticationBufferW(0, authBuffer, authBufferSize,
 				szUsername, &cbUsername, szDomain, &cbDomain, szPassword, &cbPassword);
 			dwRet = GetLastError();
+		}
 
-			if(bRet)
-			{
-				strMessage.Format(L"Username:\t'%s'\nDomain:\t\t'%s'\nPassword:\t'%s'", szUsername, szDomain, szPassword);
-				MessageBox(NULL, strMessage, L"Учетные данные", MB_OK | MB_ICONINFORMATION);
-			}
-			else
-			{
-				strMessage.Format(L"При вводе учётных данных произошла ошибка.\nОшибка: %s.", FormatLastError(dwRet));
-				MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
-			}
-
-			SecureZeroMemory(szUsername, cbUsername * sizeof(WCHAR));
-			SecureZeroMemory(szDomain, cbDomain * sizeof(WCHAR));
-			SecureZeroMemory(szPassword, cbPassword * sizeof(WCHAR));
-
-			free(szUsername);
-			free(szDomain);
-			free(szPassword);
+		if (bRet)
+		{
+			strMessage.Format(L"Username:\t'%s'\nDomain:\t\t'%s'\nPassword:\t'%s'", szUsername, szDomain, szPassword);
+			MessageBox(NULL, strMessage, L"Учетные данные", MB_OK | MB_ICONINFORMATION);
 		}
 		else
 		{
-			strMessage.Format(L"При вводе учётных данных произошла ошибка.\nОшибка: %s.", FormatLastError(dwRet));
-			MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
+			DispalyMessageBoxWithDump(dwRet, authBuffer, authBufferSize);
 		}
 
+		SecureZeroMemory(szUsername, cbUsername * sizeof(WCHAR));
+		SecureZeroMemory(szDomain, cbDomain * sizeof(WCHAR));
+		SecureZeroMemory(szPassword, cbPassword * sizeof(WCHAR));
+
+		free(szUsername);
+		free(szDomain);
+		free(szPassword);
+		
 		SecureZeroMemory(authBuffer, authBufferSize);
+
 		CoTaskMemFree(authBuffer);
 	}
 	else if(dwRet == ERROR_CANCELLED)
@@ -308,3 +291,25 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	return 0;
 }
 
+void DispalyMessageBoxWithDump(DWORD dwRet, LPVOID authBuffer, ULONG authBufferSize)
+{
+	CAtlStringW strMessage;
+
+	strMessage.Format(L"Учётные данные не распакованны из-за разницы в контексте безопасности.\n\n"
+		"Запакованные учётные данные имеют размер: %d (%X) байт:\n\n",
+		authBufferSize, authBufferSize);
+
+	for (DWORD row = 0; row < authBufferSize; row += 16)
+	{
+		strMessage.AppendFormat(L" %04X:", row);
+
+		for (DWORD col = 0; col < 16 && (col + row) < authBufferSize; col++)
+		{
+			strMessage.AppendFormat(L" %02X", LPBYTE(authBuffer)[row + col]);
+		}
+
+		strMessage.Append(L"\n");
+	}
+
+	MessageBox(NULL, strMessage, L"Учётные данные", MB_OK | MB_ICONERROR);
+}
